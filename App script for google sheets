@@ -1,0 +1,72 @@
+// Enter Spreadsheet ID here on line 2 inside the single quotes
+var SS = SpreadsheetApp.openById('spreadsheet id goes here');
+var timezone = "America/Chicago";
+var hours = 0;
+var str = "";
+function doGet(e) {
+  return doPost(e); // Redirects GET requests to doPost
+}
+
+function doPost(e) {
+
+  var parsedData;
+  var result = {};
+  
+  try { 
+    parsedData = JSON.parse(e.postData.contents);
+  } 
+  catch(f){
+    return ContentService.createTextOutput("Error in parsing request body: " + f.message);
+  }
+   
+  if (parsedData !== undefined){
+    var flag = parsedData.format;
+    if (flag === undefined){
+      flag = 0;
+    }
+    
+    var sheet = SS.getSheetByName(parsedData.sheet_name); // sheet name to publish data to is specified in Arduino code
+    var dataArr = parsedData.values.split(","); // creates an array of the values to publish 
+         
+    var Curr_Date = Utilities.formatDate(new Date(), timezone, "MM/dd/yyyy"); // gets the current date
+    var Curr_Time = Utilities.formatDate(new Date(), timezone, "hh:mm:ss a"); // gets the current time
+    //var Curr_Date = new Date(new Date().setHours(new Date().getHours() + hours));
+    //var Curr_Time = Utilities.formatDate(Curr_Date, timezone, 'HH:mm:ss');
+
+    // comming from Arduino code
+    var value0 = dataArr [0];  //Student ID
+    var value1 = dataArr [1];  //First Name
+    var value2 = dataArr [2];  //Last Name
+  
+      
+    
+    // read and execute command from the "payload_base" string specified in Arduino code
+    switch (parsedData.command) {
+      
+      case "insert_row":
+         
+         sheet.insertRows(2); // insert full row directly below header text
+         
+         sheet.getRange('D2').setValue(value0);     // publish STUDENT ID to cell A2
+         sheet.getRange('E2').setValue(Curr_Time);  // publish TIME IN to cell B2
+         //sheet.getRange('C2').setValue();         // publish TIME OUT to cell C2
+         //sheet.getRange('D2').setValue(value5);     // publish GATE NUMBER to cell D2
+         sheet.getRange('A2').setValue(Curr_Date);  // publish DATE to cell E2
+         sheet.getRange('B2').setValue(value1);     // publish FIRST NAME cell F2
+         sheet.getRange('C2').setValue(value2);     // publish LAST NAME cell G2
+         //sheet.getRange('H2').setValue(value3);     // publish PHONE NUMBER cell H2
+         //sheet.getRange('I2').setValue(value4);     // publish ADDRESS cell I2
+         
+         str = "Success"; // string to return back to Arduino serial console
+         SpreadsheetApp.flush();
+         break;
+         
+    }
+    
+    return ContentService.createTextOutput(str);
+  } // endif (parsedData !== undefined)
+  
+  else {
+    return ContentService.createTextOutput("Error! Request body empty or in incorrect format.");
+  }
+}
